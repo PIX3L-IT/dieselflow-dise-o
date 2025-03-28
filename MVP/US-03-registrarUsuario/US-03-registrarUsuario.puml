@@ -1,0 +1,44 @@
+@startuml
+title US-03: Registrar Usuario
+
+actor Administrador
+
+boundary "usuarios.ejs" as VistaUsuarios
+boundary "registroUsuario.ejs" as VistaRegistro
+boundary "users.routes" as Router
+control "userController" as Controller
+entity "userModel" as Modelo
+database "MongoDB" as DB
+
+== Frontend ==
+Administrador -> VistaUsuarios : Clic en "Agregar Usuario"
+VistaUsuarios -> Router : redirect('/usuarios/registrar')
+Router -> VistaRegistro : render('registroUsuario.ejs')
+alt Datos válidos
+  VistaRegistro -> VistaRegistro : Habilita botón
+else Datos inválidos
+  VistaRegistro -> VistaRegistro : Deshabilita botón
+end
+
+Administrador -> VistaRegistro : Clic en "Registra Usuario"
+VistaRegistro -> Router : POST /usersRegistrar
+
+== Backend ==
+Router ->> Controller : registerUser(req, res)
+Controller ->> Controller : Hashear contraseña
+Controller ->> Modelo : new User({...})
+
+Modelo ->> DB : INSERT INTO users
+DB -->> Modelo : Confirmación de inserción
+Modelo -->> Controller : Usuario creado
+
+Controller -->> Router : res.status(200).json(...)
+
+== Frontend ==
+Router --> VistaRegistro : Mostrar modal de éxito
+
+VistaRegistro -> Router : redirect('/usuarios')
+Router -> VistaUsuarios : render('usuarios.ejs', { usuarios })
+VistaUsuarios --> Administrador : Mostrar usuarios en vista
+
+@enduml
