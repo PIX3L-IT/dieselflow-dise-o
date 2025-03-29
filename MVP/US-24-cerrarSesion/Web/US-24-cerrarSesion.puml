@@ -1,0 +1,31 @@
+@startuml
+title US-24: Cerrar Sesión (Web)
+
+actor Administrador
+
+boundary "barraLateral.ejs" as VistaBarraLateral
+boundary "login.ejs" as VistaLogin
+boundary "users.routes" as Router
+control "userController" as Controller
+entity "userModel" as Modelo
+database "MongoDB" as DB
+
+== Frontend ==
+Administrador -> VistaBarraLateral : Clic en "Cerrar Sesión"
+VistaBarraLateral -> Router : redirect('/usuarios/login')
+
+
+== Backend ==
+Router ->> Controller : cerrarSesión(req, res)
+Controller ->> Modelo: eliminarsesiónUsuario()
+
+Modelo -->> Controller : Confirmación de sesión cerrada
+
+Controller -->> Router : res.status(200).json(...)
+
+== Frontend ==
+Router --> VistaLogin: Mostrar vista de login
+
+VistaLogin --> Administrador : Mostrar vista de Login
+
+@enduml
