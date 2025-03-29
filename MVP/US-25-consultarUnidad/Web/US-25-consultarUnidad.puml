@@ -1,0 +1,46 @@
+@startuml
+title US-25-Consultar Unidad
+
+actor Administrador
+
+participant "unidad.ejs" as M4
+participant "users.routes.js" as M1
+participant "users.controller.js" as M2
+participant "users.model.js" as M3
+database "MongoDB" as DB
+
+== Frontend ==
+Administrador -> M4 : Clic en una unidad
+M4 -> M1 : GET /unidades/{id}
+
+== Backend ==
+M1 ->> M2 : controller.getUnit(req, res)
+M2 ->> M3 : model.findById(id)
+
+M3 ->> DB : Unit.findOne({ _id: id })
+DB -->> M3 : Objeto BSON de la unidad
+M3 -->> M2 : unidad
+M2 -->> M1 : unidad
+M1 --> M4 : res.render('/unidades/{id}', { unidad: unidad })
+
+alt Unidad no encontrada
+    DB -->> M3 : null
+    M3 -->> M2 : Retorna null
+    M2 --> M4 :  res.render('/unidades', { unidades: unidades, error: error })
+end
+
+alt No hay conexión a internet
+    DB -->> M3 : Error de conexión (code: "TIMEOUT")
+    M3 -->> M2 : Retorna error {code, message}
+    M2 --> M4 : "Error: No hay conexión a internet. (code: timeout)"
+end
+
+alt Error BD
+    DB -->> M3 : Error de conexión (code: "ECONNREFUSED")
+    M3 -->> M2 : Retorna error { code, message}
+    M2 --> M4 : "Error en la base de datos. (code: ECONNREFUSED)"
+end
+
+
+
+@enduml

@@ -1,0 +1,51 @@
+@startuml
+title US-02-Consultar Usuarios
+
+actor Administrador
+
+participant "usuarios.ejs" as M4
+participant "users.routes.js" as M1
+participant "users.controller.js" as M2
+participant "users.model.js" as M3
+database "MongoDB" as DB
+
+== Frontend ==
+alt filtro de usuarios
+    Administrador -> M4 : Sin clic en filtro. tipo = null
+else
+    Administrador -> M4 : Clic en filtro. tipo =  "Conductores" | "Administradores"
+end
+
+
+M4 -> M1 : GET /usuarios?tipo={tipo}
+
+== Backend ==
+M1 ->> M2 : controller.getUsers(req,res)
+M2 ->> M3 : model.fetchAll(typeUser)
+
+alt typeUser == null (Consulta todos los usuarios)
+    M3 ->> DB : User.find({})
+else typeUser == "Conductor" OR typeUser == "Administrador"
+    M3 ->> DB : User.find({ rol: typeUser })
+end
+
+DB -->> M3 : Array BSON de usuarios
+M3 -->> M2 : Array de usuarios
+M2 --> M4 : res.render('/usuarios', { usuarios: usuarios })
+
+
+alt No hay conexión a internet
+    DB -->> M3 : Error de conexión (code: "TIMEOUT")
+    M3 -->> M2 : Retorna error {code, message}
+    M2 --> M4 : res.render('/usuarios', { usuarios: usuarios, error: "Error: No hay conexión a internet. (code: timeout)" })
+end
+
+alt Error BD
+    DB -->> M3 : Error de conexión (code: "ECONNREFUSED")
+    M3 -->> M2 : Retorna error { code, message}
+    M2 --> M4 : res.render('/usuarios', { usuarios: usuarios, error: "Error en la base de datos. (code: ECONNREFUSED)" }) 
+end
+
+
+
+@enduml
