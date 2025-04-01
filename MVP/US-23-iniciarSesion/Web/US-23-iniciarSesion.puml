@@ -7,6 +7,8 @@ boundary "login.ejs" as VistaLogin
 boundary "dashboard.ejs" as VistaDashboard
 boundary "users.routes" as Router
 control "userController" as Controller
+boundary "statistics.routes" as SRouter
+control "statisticsController" as SController
 entity "userModel" as Modelo
 database "MongoDB" as DB
 
@@ -29,18 +31,18 @@ alt Usuario encontrado
     alt Contraseña válida
         Controller -> Controller : Generar JWT Token
         Controller --> Router : Responder con Token JWT
-        Router --> VistaLogin : Responder con Token JWT
-        VistaLogin -> U : Guardar Token y redirigir
+        Router --> SController : PasarToken
+        == Frontend ==
+        SController --> SRouter : Renderizar Dashboard Principal
+
     else Contraseña incorrecta
         Controller --> Router : Responder con error "Credenciales incorrectas"
-        Router --> VistaLogin : Mostrar error
+        Router --> VistaLogin : Mostrar error en vista Login
     end
 else Usuario no encontrado
     Controller --> Router : Responder con error "Usuario no existe"
-    Router --> VistaLogin : Mostrar error
+    Router --> VistaLogin : Mostrar error en vista Login
 end
 
-== Frontend ==
-Router --> VistaDashboard: Renderizar Dashboard Principal
 
 @enduml
