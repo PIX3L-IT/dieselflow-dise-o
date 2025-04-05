@@ -1,0 +1,47 @@
+@startuml
+title US-22-Registrar datos de carga
+
+actor Conductor
+
+participant "fuelLoadActivity" as V1
+participant "fuelLoadViewModel.kt" as VM
+participant "fuelLoadRepository.kt" as R
+participant "fuelLoadService.kt" as S
+participant "OCRProcessor.kt" as OCR
+database "MongoDB" as DB
+
+Conductor -> V1 : Abre pantalla de carga
+V1 -> V1 : Muestra campos: Unidad, Kilometraje, Litros
+
+== Selección de Unidad ==
+Conductor -> V1 : Abre lista desplegable y selecciona unidad
+V1 -> VM : setUnidadSeleccionada(unidad)
+
+== Captura de Kilometraje ==
+Conductor -> V1 : Presiona ícono de cámara (Kilometraje)
+V1 -> V1 : Abre cámara
+Conductor -> V1 : Toma foto
+V1 -> OCR : procesarImagen(kmImg)
+OCR --> V1 : devuelve valor de kilometraje
+V1 -> VM : setKilometraje(km)
+
+== Captura de Litros ==
+Conductor -> V1 : Presiona ícono de cámara (Litros)
+V1 -> V1 : Abre cámara
+Conductor -> V1 : Toma foto
+V1 -> OCR : procesarImagen(litrosImg)
+OCR --> V1 : devuelve valor de litros
+V1 -> VM : setLitros(litros)
+
+== Registro ==
+Conductor -> V1 : Presiona "Registrar Datos"
+V1 -> VM : registerLoad()
+
+VM -> R : registerLoad(unidad, km, litros)
+R -> S : POST /registro-carga
+S -> DB : Guardar datos
+DB --> V1 : mostrarÉxito()
+
+V1 -> Conductor : "Datos capturados exitosamente"
+
+@enduml
