@@ -1,0 +1,51 @@
+@startuml
+title US-11-Recuperar contraseña
+
+actor Administrador as admin
+
+boundary "user.routes.js" as route
+boundary "confirmarCorreo.ejs" as confirmarCorreo
+boundary "restablecerContrasenia.ejs" as restablecerContrasenia
+boundary "login.ejs" as login
+boundary "nodemailer.js" as nodemailer
+control "users.controller.js" as controller
+entity "users.model.js" as model
+database "MongoDB" as DB
+
+== Frontend ==
+admin -> route ++: GET('/users/confirmar-correo')
+route -> controller --++ : getConfirmEmail(request, response, next)
+controller -> confirmarCorreo -- : render('confirmarCorreo.ejs')
+admin -> route ++: POST('/users/confirmar-correo')
+
+== Backend ==
+route ->> controller --++: postConfirmEmail(request, response, next)
+controller ->> model ++: findByEmail({ email })
+model ->> DB : findOne({ email : email })
+DB -->> model : user
+model -->> controller -- : user
+
+alt (user != null) && (user.role == "Admin")
+    controller -> nodemailer : sendEmail(html, user.email, subject)
+end
+controller--
+
+== Frontend ==
+admin -> route ++: GET('/users/restablecer-contrasenia')
+route -> controller --++ : getRecoveryPassword(request, response, next)
+controller -> restablecerContrasenia -- : render('restablecerContrasenia.ejs')
+admin -> route ++: POST('/users/restablecer-contrasenia')
+
+== Backend ==
+route ->> controller --++: postPasswordRecovery(request, response, next)
+alt jwt.verify(token, config.jwtSecret)
+    controller ->> model ++: setPassword();
+    model ->> DB : updateOne({ email : email }, { $set: { password: password } })
+    DB -->> model : msg
+    model -->> controller -- : msg
+    controller -> login : render('login')
+else err
+    controller -> route -- : redirect('users/login')
+end
+
+@enduml
