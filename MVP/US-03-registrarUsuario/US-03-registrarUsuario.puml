@@ -6,7 +6,7 @@ actor Administrador
 boundary "users.ejs" as VistaUsuarios
 boundary "registerUser.ejs" as VistaRegistro
 boundary "usersRoutes" as Router
-control "userController" as Controller
+control "registerUserController" as Controller
 entity "userModel" as Modelo
 database "MongoDB" as DB
 
