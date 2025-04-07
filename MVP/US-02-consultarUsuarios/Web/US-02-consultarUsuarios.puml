@@ -3,10 +3,10 @@ title US-02-Consultar Usuarios
 
 actor Administrador
 
-participant "usuarios.ejs" as M4
-participant "users.routes.js" as M1
-participant "users.controller.js" as M2
-participant "users.model.js" as M3
+boundary  "users.ejs" as M4
+boundary  "usersRoutes.js" as M1
+control  "getUsersController.js" as M2
+entity  "usersModel.js" as M3
 database "MongoDB" as DB
 
 == Frontend ==
@@ -34,14 +34,14 @@ M3 -->> M2 : Array de usuarios
 M2 --> M4 : res.render('/usuarios', { usuarios: usuarios })
 
 
-alt No hay conexi髇 a internet
-    DB -->> M3 : Error de conexi髇 (code: "TIMEOUT")
+alt No hay conexi贸n a internet
+    DB -->> M3 : Error de conexi贸n (code: "TIMEOUT")
     M3 -->> M2 : Retorna error {code, message}
-    M2 --> M4 : res.render('/usuarios', { usuarios: usuarios, error: "Error: No hay conexi髇 a internet. (code: timeout)" })
+    M2 --> M4 : res.render('/usuarios', { usuarios: usuarios, error: "Error: No hay conexi贸n a internet. (code: timeout)" })
 end
 
 alt Error BD
-    DB -->> M3 : Error de conexi髇 (code: "ECONNREFUSED")
+    DB -->> M3 : Error de conexi贸n (code: "ECONNREFUSED")
     M3 -->> M2 : Retorna error { code, message}
     M2 --> M4 : res.render('/usuarios', { usuarios: usuarios, error: "Error en la base de datos. (code: ECONNREFUSED)" }) 
 end

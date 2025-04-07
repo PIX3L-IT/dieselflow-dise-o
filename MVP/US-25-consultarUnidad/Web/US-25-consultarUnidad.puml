@@ -3,10 +3,10 @@ title US-25-Consultar Unidad
 
 actor Administrador
 
-participant "unidad.ejs" as M4
-participant "users.routes.js" as M1
-participant "users.controller.js" as M2
-participant "users.model.js" as M3
+boundary "units.ejs" as M4
+boundary "unitsRoutes.js" as M1
+control "getUnitController.js" as M2
+entity "unitsModel.js" as M3
 database "MongoDB" as DB
 
 == Frontend ==
@@ -29,14 +29,14 @@ alt Unidad no encontrada
     M2 --> M4 :  res.render('/unidades', { unidades: unidades, error: error })
 end
 
-alt No hay conexión a internet
-    DB -->> M3 : Error de conexión (code: "TIMEOUT")
+alt No hay conexiï¿½n a internet
+    DB -->> M3 : Error de conexiï¿½n (code: "TIMEOUT")
     M3 -->> M2 : Retorna error {code, message}
-    M2 --> M4 : "Error: No hay conexión a internet. (code: timeout)"
+    M2 --> M4 : "Error: No hay conexiï¿½n a internet. (code: timeout)"
 end
 
 alt Error BD
-    DB -->> M3 : Error de conexión (code: "ECONNREFUSED")
+    DB -->> M3 : Error de conexiï¿½n (code: "ECONNREFUSED")
     M3 -->> M2 : Retorna error { code, message}
     M2 --> M4 : "Error en la base de datos. (code: ECONNREFUSED)"
 end
