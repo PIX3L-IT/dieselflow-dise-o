@@ -3,9 +3,9 @@ title US-03: Registrar Usuario
 
 actor Administrador
 
-boundary "usuarios.ejs" as VistaUsuarios
-boundary "registroUsuario.ejs" as VistaRegistro
-boundary "users.routes" as Router
+boundary "users.ejs" as VistaUsuarios
+boundary "registerUser.ejs" as VistaRegistro
+boundary "usersRoutes" as Router
 control "userController" as Controller
 entity "userModel" as Modelo
 database "MongoDB" as DB
