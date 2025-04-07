@@ -5,7 +5,7 @@ actor Administrador
 
 boundary "barraLateral.ejs" as VistaBarraLateral
 boundary "login.ejs" as VistaLogin
-boundary "users.routes" as Router
+boundary "usersRoutes" as Router
 control "userController" as Controller
 entity "userModel" as Modelo
 database "MongoDB" as DB
@@ -14,12 +14,13 @@ database "MongoDB" as DB
 Administrador -> VistaBarraLateral : Clic en "Cerrar Sesión"
 VistaBarraLateral -> Router : redirect('/usuarios/login')
 
-
+ 
 == Backend ==
 Router ->> Controller : cerrarSesión(req, res)
 Controller ->> Modelo: eliminarsesiónUsuario()
 
 Modelo -->> Controller : Confirmación de sesión cerrada
+Controller -->> Controller: Eliminar token JWT
 
 Controller -->> Router : res.status(200).json(...)
 
