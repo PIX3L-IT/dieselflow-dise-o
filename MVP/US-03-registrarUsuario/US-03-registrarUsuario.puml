@@ -28,7 +28,7 @@ Router ->> Controller : registerUser(req, res)
 Controller ->> Controller : Hashear contraseña
 Controller ->> Modelo : new User({...})
 
-Modelo ->> DB : INSERT INTO users
+Modelo ->> DB : db.user.insertOne
 DB -->> Modelo : Confirmación de inserción
 Modelo -->> Controller : Usuario creado
 
