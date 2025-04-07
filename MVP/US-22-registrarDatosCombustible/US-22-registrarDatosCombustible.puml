@@ -1,47 +1,79 @@
 @startuml
-title US-22-Registrar datos de carga
+title US-22 - Registrar datos de carga 
 
 actor Conductor
 
-participant "fuelLoadActivity" as V1
-participant "fuelLoadViewModel.kt" as VM
-participant "fuelLoadRepository.kt" as R
-participant "fuelLoadService.kt" as S
-participant "OCRProcessor.kt" as OCR
-database "MongoDB" as DB
+boundary "fuelLoadActivity\n(View)" as V1
+control "fuelLoadViewModel" as VM
+control "ReportRepository" as Repository
+control "ApiService" as API
+control "NetworkModuleDI" as DI
+entity "Requirement\n(Model)" as Model
+database "Servidor Remoto\nMongoDB" as DB
+control "OCRProcessor.kt" as OCR
 
+' === Pantalla de carga ===
 Conductor -> V1 : Abre pantalla de carga
+V1 -> VM : solicitarUnidades()
+
+VM -> Repository : obtenerUnidades()
+Repository -> API : GET /unidades
+API -> DI : Obtener cliente HTTP/configuración
+DI --> API : Cliente configurado
+
+API -> DB : Consultar nombres de unidades
+DB --> API : Lista de unidades (JSON)
+API -> Model : Convertir JSON a objetos Requirement
+Model --> API : Lista de objetos
+API --> Repository : Lista de unidades
+Repository --> VM : Lista de unidades
+VM --> V1 : Lista de unidades
 V1 -> V1 : Muestra campos: Unidad, Kilometraje, Litros
 
-== Selección de Unidad ==
-Conductor -> V1 : Abre lista desplegable y selecciona unidad
+' === Selección de unidad ===
+Conductor -> V1 : Selecciona unidad
 V1 -> VM : setUnidadSeleccionada(unidad)
 
-== Captura de Kilometraje ==
-Conductor -> V1 : Presiona ícono de cámara (Kilometraje)
+' === Captura de kilometraje ===
+Conductor -> V1 : Presiona ícono cámara (km)
 V1 -> V1 : Abre cámara
 Conductor -> V1 : Toma foto
 V1 -> OCR : procesarImagen(kmImg)
-OCR --> V1 : devuelve valor de kilometraje
+OCR --> V1 : valor de kilometraje
 V1 -> VM : setKilometraje(km)
 
-== Captura de Litros ==
-Conductor -> V1 : Presiona ícono de cámara (Litros)
+' === Captura de litros ===
+Conductor -> V1 : Presiona ícono cámara (litros)
 V1 -> V1 : Abre cámara
 Conductor -> V1 : Toma foto
 V1 -> OCR : procesarImagen(litrosImg)
-OCR --> V1 : devuelve valor de litros
+OCR --> V1 : valor de litros
 V1 -> VM : setLitros(litros)
 
-== Registro ==
+' === Registro ===
 Conductor -> V1 : Presiona "Registrar Datos"
 V1 -> VM : registerLoad()
+VM -> Repository : registerLoad(unidad, km, litros)
+Repository -> API : POST /registro-carga
 
-VM -> R : registerLoad(unidad, km, litros)
-R -> S : POST /registro-carga
-S -> DB : Guardar datos
-DB --> V1 : mostrarÉxito()
+' == Flujo exitoso ==
+alt Registro exitoso
+    API -> DB : Guardar datos
+    DB --> API : Confirmación
+    API --> Repository : Éxito
+    Repository --> VM : Éxito
+    VM --> V1 : mostrarÉxito()
+    V1 -> Conductor : "Datos capturados exitosamente"
+end
 
-V1 -> Conductor : "Datos capturados exitosamente"
+' == Flujo de error ==
+alt Error al registrar
+    API -> DB : Guardar datos
+    DB --> API : Error (timeout, validación, etc.)
+    API --> Repository : Error
+    Repository --> VM : Error
+    VM --> V1 : mostrarError()
+    V1 -> Conductor : "Error al registrar datos. Intente más tarde."
+end
 
 @enduml
