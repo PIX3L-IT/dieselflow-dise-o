@@ -5,10 +5,10 @@ actor Usuario as U
 
 boundary "login.ejs" as VistaLogin
 boundary "dashboard.ejs" as VistaDashboard
-boundary "usersRoutes" as Router
-control "userController" as Controller
-boundary "statisticsRoutes" as SRouter
-control "statisticsController" as SController
+boundary "loginRoutes" as Router
+control "loginController" as Controller
+boundary "formsRoutes" as SRouter
+control "formsController" as SController
 entity "userModel" as Modelo
 database "MongoDB" as DB
 
