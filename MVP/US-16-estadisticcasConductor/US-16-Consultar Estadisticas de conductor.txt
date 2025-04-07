@@ -1,0 +1,181 @@
+@startuml
+title US-16 - Estadisticas de conductor
+
+actor Admin as Administrador
+
+participant "statisticsConductorView.ejs" as conductorView
+participant "statisticsConductorRoutes.js" as conductorRoutes
+participant "statisticsConductorController.js" as conductorController
+participant "userModel.js" as conductorModel
+participant "reportModel.js" as reportModel
+database "MongoDB" as DB
+
+== Frontend ==
+Administrador -> conductorView : Click on a unit
+activate conductorView
+conductorView -> conductorRoutes : GET /conductor/{id}?page=0
+deactivate conductorView
+
+== Routes ==
+activate conductorRoutes
+
+note right of conductorRoutes
+Route definition handles page way query param
+end note
+conductorRoutes -> conductorController : router.get("/conductor/:id", controller.getDriver)
+deactivate conductorRoutes
+activate conductorController
+conductorController ->> conductorController : getDriver(request, response)
+
+== Controller ==
+conductorController -> conductorController : const page = parseInt(req.query.page) || 0
+note right of conductorController
+Extract page number from query string
+end note
+
+conductorController ->> conductorModel : getUserWithUnit(userId)
+activate conductorModel
+conductorModel ->> DB : User.find({ idUser })\n.populate("idUnit").limit(5)
+activate DB
+DB -->> conductorModel : BSON user object
+deactivate DB
+conductorModel -->> conductorController : driver
+deactivate conductorModel
+
+conductorController ->> reportModel : countUserTrips(userId)
+activate reportModel
+reportModel ->> DB : Report.countDocuments({ idUser })
+activate DB
+DB -->> reportModel : BSON total trip count
+deactivate DB
+reportModel -->> conductorController : totalTrips
+deactivate reportModel
+
+conductorController ->> conductorModel : getDieselByDay(userId)
+activate conductorModel
+conductorModel ->> DB : Report.aggregate([\n { $match: { idUser: ObjectId(userId) } },\n { $group: { _id: { day: { $dateToString:\n {\n format:\n "%Y-%m-%d", \ndate:\n "$loadDate" \n} } }, totalLiters:\n {\n $sum:\n "$liters" \n} } },\n { $sort: { "_id.day": 1 } }\n])
+activate DB
+DB -->> conductorModel : Diesel grouped by day
+deactivate DB
+conductorModel -->> conductorController : dieselByDay
+deactivate conductorModel
+
+conductorController -> conductorController : dieselData = dieselByDay.map(d => ({ date: d._id.day, liters: d.totalLiters }))
+note right of conductorController
+Map dieselByDay into dieselData for D3.js
+end note
+
+conductorController ->> conductorModel : getPaginatedReports(userId, page)
+activate reportModel
+reportModel ->> DB : Report.find({ idUser })\n.sort({ loadDate: -1 })\n.skip(page * 5)\n.limit(5)\n.populate("idUnit")
+activate DB
+DB -->> reportModel : 5 reports from requested page
+deactivate DB
+reportModel -->> conductorController : lastReports
+deactivate conductorModel
+
+conductorController -> conductorController : const data = {\n unit: driver,\n totalTrips,\n dieselData,\n lastReports,\n page\n }
+note right of conductorController
+Pack all data into object for rendering
+end note
+
+conductorController -> conductorView : response.render("views/conductor", data)
+deactivate conductorController
+
+== Frontend (Visualization) ==
+activate conductorView
+
+conductorView -> conductorView : <script src="https://d3js.org/d3.v7.min.js"></script> 
+note right of conductorView
+Load D3.js library
+end note
+
+conductorView -> conductorView : <script>\nconst data = <%- JSON.stringify(dieselData) %>;\n</script>
+note right of conductorView
+Render D3.js bar chart from dieselData
+end note
+
+conductorView -> conductorView : <%- include("partials/lastReportsTable", { lastReports }) %>
+note right of conductorView
+Render paginated reports table
+end note
+
+conductorView -> conductorView : <img src="<%= report.photoLiters %>" alt="Fuel photo">
+note right of conductorView
+Render image from S3 URL
+end note
+
+== AJAX Pagination ==
+Administrador -> conductorView : Click in button "Siguiente"
+
+
+conductorView -> conductorView : fetch(`/conductor_page/<%= unit._id %>/reports?page=n`)
+note right of conductorView
+AJAX with fetch to get the next page
+end note
+
+conductorView -> conductorRoutes : GET /conductor_page/:id/reports?page=n
+activate conductorRoutes
+
+conductorRoutes -> conductorController : router.get("/conductor_page/:id/reports", controller.getPaginated);
+deactivate conductorRoutes
+activate conductorController
+
+conductorController ->> conductorModel : getPaginated(userId, page, limit)
+activate conductorModel
+conductorModel ->> DB : Report.find().sort({ _id: ...}) .skip((page - 1) * limit).limit(limit);("idUnit")
+activate DB 
+DB -->> conductorModel : report, total
+deactivate DB
+conductorModel -->> conductorController : report, total
+deactivate conductorModel
+conductorController -->> conductorController: const response = {\n report, \n currentPage: \n page, \n hasNextPage: (page * limit) < total \n,hasPrevPage: page > 1};
+
+
+conductorController --> conductorView : res.render('driver_statistic', response);
+
+note right of conductorView
+Update DOM with the new reports
+end note
+conductorView -> Administrador : Next page
+deactivate conductorController
+
+deactivate conductorView
+
+== Error Handling ==
+alt No internet connection
+    
+    DB -->> conductorModel : Connection error (code: "TIMEOUT")
+    deactivate DB
+    activate conductorModel
+    conductorModel -->> conductorController : { code: "TIMEOUT", message: "No internet connection" }
+    deactivate conductorModel
+    activate conductorController
+    conductorController -->> conductorRoutes : error
+    deactivate conductorController
+    activate conductorRoutes
+    conductorRoutes --> conductorView : "Error: No internet connection (code: TIMEOUT)"
+    deactivate conductorRoutes
+    activate conductorView
+    conductorView --> Administrador : "Error page"
+    deactivate conductorView
+end
+
+alt No response for timeout
+    activate DB
+    DB -->> conductorModel : Connection error (code: "TIMEOUT")
+    deactivate DB
+    activate conductorModel
+    conductorModel -->> conductorController : { code: "TIMEOUT", message: "No internet connection" }
+    deactivate conductorModel
+    activate conductorController
+    conductorController -->> conductorRoutes : error
+    deactivate conductorController
+    activate conductorRoutes
+    conductorRoutes --> conductorView : "Error: No internet connection (code: TIMEOUT)"
+    deactivate conductorRoutes
+    activate conductorView
+    conductorView --> Administrador : "Error page"
+    deactivate conductorView
+end
+@enduml
