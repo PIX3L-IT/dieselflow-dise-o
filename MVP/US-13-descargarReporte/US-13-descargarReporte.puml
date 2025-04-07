@@ -1,0 +1,74 @@
+@startuml US-14-consultarReporte
+title US-01-Descargar reporte
+
+actor Administrador
+
+boundary "report.routes" as routes
+boundary "report.ejs" as view
+control "report.controller.js" as controller
+entity "user.model.js" as model_user
+entity "unit.model.js" as model_unit
+entity "report.model.js" as model_report
+database "MongoDB" as db
+
+== Frontend ==
+Administrador -> routes: GET /reports
+activate routes
+
+routes -> controller: get_filters(request, response, next)
+deactivate routes
+
+== Backend ==
+activate controller
+controller ->> model_unit: fetchAll()
+activate model_unit
+model_unit ->> db: db.Unit.find({});
+activate db
+db -->> model_unit: units
+deactivate db
+model_unit -->> controller: units
+deactivate model_unit
+
+controller ->> model_user: fetchDrivers()
+activate model_user
+model_user ->> db: db.User.find({IDRole: 'Conductor'}); 
+activate db
+db -->> model_user: drivers
+deactivate db
+model_user -->> controller: drivers
+deactivate model_user
+
+== Frontend ==
+controller -> routes: response.render('consult_report', {units: units, drivers: drivers});
+deactivate controller
+
+activate routes
+routes -> Administrador: HTML
+deactivate routes
+
+Administrador -> Administrador: onselect(generate)
+
+Administrador -> routes: fetch('report/generate_report', { method: 'POST', body: formData })
+activate routes
+
+routes -> controller: post_report(request, response, next)
+deactivate routes
+
+== Backend ==
+activate controller
+controller ->> model_report: fetchReport(startDate, endDate, idUnit, idUser)
+activate model_report
+model_report ->> db: db.Report.find({loadDate: {$gt: startDate, $lt: endDate}});
+activate db
+db -->> model_report: reportData
+deactivate db
+model_report -->> controller: reportData
+deactivate model_report
+
+controller -> routes: response.download('path/to/report.pdf', 'reporte.pdf') 
+deactivate controller
+
+== Frontend ==
+routes -> Administrador: file download
+deactivate routes
+@enduml
