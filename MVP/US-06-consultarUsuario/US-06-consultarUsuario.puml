@@ -1,0 +1,44 @@
+@startuml
+title US-06-consultarUsuario
+
+actor Administrador
+
+participant "usuario.ejs" as V4
+participant "users.routes.js" as V1
+participant "users.controller.js" as V2
+participant "users.model.js" as V3
+database "MongoDB" as DB
+
+== Frontend ==
+Administrador -> V4 : Clic en un usuario
+V4 -> V1 : GET /usuarios/{id}
+
+== Backend ==
+V1 ->> V2 : controller.getUser(req, res)
+V2 ->> V3 : model.findById(id)
+
+V3 ->> DB : User.findOne({ _id: id })
+DB -->> V3 : Objeto BSON del usuario
+V3 -->> V2 : usuario
+V2 -->> V1 : usuario
+V1 --> V4 : res.render('/usuarios/{id}', { usuario: usuario })
+
+alt Usuario no encontrado
+    DB -->> V3 : null
+    V3 -->> V2 : Retorna null
+    V2 --> V4 : res.render('/usuarios', { usuarios: usuarios, error: error })
+end
+
+alt No hay conexión a internet
+    DB -->> V3 : Error de conexión (code: "TIMEOUT")
+    V3 -->> V2 : Retorna error {code, message}
+    V2 --> V4 : "Error: No hay conexión a internet. (code: timeout)"
+end
+
+alt Error BD
+    DB -->> V3 : Error de conexión (code: "ECONNREFUSED")
+    V3 -->> V2 : Retorna error { code, message}
+    V2 --> V4 : "Error en la base de datos. (code: ECONNREFUSED)"
+end
+
+@enduml

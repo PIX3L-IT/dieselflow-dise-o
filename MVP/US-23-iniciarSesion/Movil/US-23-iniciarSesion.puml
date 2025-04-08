@@ -1,0 +1,49 @@
+@startuml
+title US-23: Iniciar Sesión Móvil 
+
+actor Usuario as U
+
+boundary "LoginActivity\n(View)" as Activity
+control "LoginViewModel" as ViewModel
+control "UserRepository" as Repository
+entity "Requirement\n(Model)" as Model
+control "ApiService" as API
+control "NetworkModuleDI" as DI
+database "Servidor Remoto\nMongoDB" as DB
+
+== Frontend ==
+U -> Activity : Ingresa usuario
+U -> Activity : Ingresa contraseña
+U -> Activity : Clic en "Iniciar Sesión"
+Activity -> ViewModel : iniciarSesion(usuario, contraseña)
+
+
+== Backend ==
+ViewModel -> Repository : iniciarSesion(usuario, contraseña)
+Repository -> API : login(usuario, contraseña)
+API -> DB : Buscar usuario por nombre
+DB --> API : Usuario encontrado / no encontrado
+
+alt Usuario encontrado
+    API -> API : Verificar contraseña
+    alt Contraseña válida
+        API -> API : Generar JWT Token
+        API --> Repository : JWT Token
+        Repository --> ViewModel : Resultado OK
+        == Frontend ==
+        ViewModel --> Activity : Navegar a Formulario
+    else Contraseña incorrecta
+        API --> Repository : Error "Credenciales incorrectas"
+        Repository --> ViewModel : Resultado Error
+        == Frontend ==
+        ViewModel --> Activity : Mostrar error en pantalla
+    end
+else Usuario no encontrado
+    API --> Repository : Error "Usuario no existe"
+    Repository --> ViewModel : Resultado Error
+    == Frontend ==
+    ViewModel --> Activity : Mostrar error en pantalla
+end
+
+
+@enduml

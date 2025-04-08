@@ -1,0 +1,48 @@
+@startuml 
+title US-23: Iniciar Sesion Web
+
+actor Usuario as U
+
+boundary "login.ejs" as VistaLogin
+boundary "dashboard.ejs" as VistaDashboard
+boundary "loginRoutes" as Router
+control "loginController" as Controller
+boundary "formsRoutes" as SRouter
+control "formsController" as SController
+entity "userModel" as Modelo
+database "MongoDB" as DB
+
+== Frontend ==
+U -> VistaLogin : Ingresar usuario
+U -> VistaLogin : Ingresar contraseña 
+U -> VistaLogin : Clic en "Iniciar Sesión"
+VistaLogin -> Router : POST /iniciarSesion
+
+== Backend ==
+Router -> Controller : iniciarSesion(req, res)
+Controller -> Modelo : Buscar usuario por nombre
+Modelo -> DB : Consulta usuario
+DB --> Modelo : Retorna usuario o null
+Modelo --> Controller : Devuelve usuario
+Controller -->> Router : res.status(200).json(...)
+
+alt Usuario encontrado
+    Controller -> Controller : Verificar contraseña
+    alt Contraseña válida
+        Controller -> Controller : Generar JWT Token
+        Controller --> Router : Responder con Token JWT
+        Router --> SController : PasarToken
+        == Frontend ==
+        SController --> SRouter : Renderizar Dashboard Principal
+
+    else Contraseña incorrecta
+        Controller --> Router : Responder con error "Credenciales incorrectas"
+        Router --> VistaLogin : Mostrar error en vista Login
+    end
+else Usuario no encontrado
+    Controller --> Router : Responder con error "Usuario no existe"
+    Router --> VistaLogin : Mostrar error en vista Login
+end
+
+
+@enduml

@@ -3,10 +3,10 @@ title US-03: Registrar Usuario
 
 actor Administrador
 
-boundary "usuarios.ejs" as VistaUsuarios
-boundary "registroUsuario.ejs" as VistaRegistro
-boundary "users.routes" as Router
-control "userController" as Controller
+boundary "users.ejs" as VistaUsuarios
+boundary "registerUser.ejs" as VistaRegistro
+boundary "usersRoutes" as Router
+control "registerUserController" as Controller
 entity "userModel" as Modelo
 database "MongoDB" as DB
 
@@ -28,7 +28,7 @@ Router ->> Controller : registerUser(req, res)
 Controller ->> Controller : Hashear contraseña
 Controller ->> Modelo : new User({...})
 
-Modelo ->> DB : INSERT INTO users
+Modelo ->> DB : db.user.insertOne
 DB -->> Modelo : Confirmación de inserción
 Modelo -->> Controller : Usuario creado
 

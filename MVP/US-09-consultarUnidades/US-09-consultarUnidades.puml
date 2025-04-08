@@ -1,0 +1,89 @@
+@startuml
+title US-09-Consultar Unidades
+
+actor Administrador
+
+boundary "units.ejs" as M4
+boundary "units.routes.js" as M1
+control "units.controller.js" as M2
+entity "units.model.js" as M3
+database "MongoDB" as DB
+
+== Frontend ==
+Administrador -> M4 : Clic en Unidades
+activate M4
+M4 -> M1 : GET /units
+deactivate M4
+
+== Backend ==
+activate M1
+M1 -> M2 : Llama a controller.getUnits(req, res)
+deactivate M1
+activate M2
+M2 -> M3 : model.fetchAll()
+deactivate M2
+
+activate M3
+M3 ->> DB : Unit.find({}) 
+deactivate M3
+activate DB
+DB -->> M3 : Array de unidades
+deactivate DB
+activate M3
+M3 -->> M2 : Array de unidades
+deactivate M3
+
+activate M2
+M2 -->> M1 : Responde con unidades
+deactivate M2
+
+== Frontend ==
+activate M1
+M1 --> M4 : Renderizar vista con las unidades
+deactivate M1
+
+alt No hay unidades registradas
+activate DB
+    DB -->> M3 : Retorna array vacío []
+deactivate DB
+activate M3
+    M3 -->> M2 : Array vacío []
+deactivate M3
+activate M2
+    M2 -->> M1 : Responde con { unidades: [], mensaje: "No hay unidades registradas." }
+deactivate M2
+activate M1
+    M1 --> M4 : Renderizar vista con mensaje 
+deactivate M1
+end
+
+alt No hay conexión a internet
+activate DB
+    DB -->> M3 : Error de conexión (code: "TIMEOUT")
+deactivate DB
+activate M3
+    M3 -->> M2 : Retorna error { code, message }
+deactivate M3
+activate M2
+    M2 -->> M1 : Responde con error { code, message }
+deactivate M2
+activate M1
+    M1 --> M4 : Renderizar vista con error "No hay conexión a internet. (code: timeout)"
+deactivate M1
+end
+
+alt Error en la base de datos
+activate DB
+    DB -->> M3 : Error de conexión (code: "ECONNREFUSED")
+deactivate DB
+activate M3
+    M3 -->> M2 : Retorna error { code, message }
+deactivate M3
+activate M2
+    M2 -->> M1 : Responde con error { code, message }
+deactivate M2
+activate M1
+    M1 --> M4 : Renderizar vista con error "Error en la base de datos"
+deactivate M1
+end
+@enduml
