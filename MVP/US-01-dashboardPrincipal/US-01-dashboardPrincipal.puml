@@ -3,19 +3,19 @@ title US-01-Consultar dashboard principal
 
 actor Administrador
 
-boundary "dashboard.routes" as R
+boundary "dashboardRoutes.js" as R
 boundary "dashboard.ejs" as View
-control "dashboard.controller.js" as C
-entity "reporte.model.js" as M_Reporte
-entity "user.model.js" as M_User
-entity "unit.model.js" as M_Unit
+control "dashboardController.js" as C
+entity "reporteModel.js" as M_Reporte
+entity "userModel.js" as M_User
+entity "unitModel.js" as M_Unit
 database "MongoDB" as DB
 
 == Frontend ==
 Administrador -> R: GET /dashboard
 
 activate R
-R -> C: getConsultDashboard(request, response)
+R -> C: getConsultDashboard(req, res)
 deactivate R
 
 == Backend ==
