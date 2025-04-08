@@ -1,18 +1,21 @@
 @startuml US-14-consultarReporte
-title US-01-Consultar dashboard principal
+title US-14-Consultar Reporte
 
 actor Administrador
 
-boundary "report.routes" as routes
 boundary "report.ejs" as view
-control "report.controller.js" as controller
-entity "user.model.js" as model_user
-entity "unit.model.js" as model_unit
-entity "report.model.js" as model_report
+boundary "reportRoutes" as routes
+control "generateReportController.js" as controller
+entity "userModel" as model_user
+entity "unitModel" as model_unit
+entity "reportModel" as model_report
 database "MongoDB" as db
 
 == Frontend ==
-Administrador -> routes: GET /reports
+Administrador -> view: Seleccionar 'Reportes'
+activate view
+view -> routes: GET /reports
+deactivate view
 activate routes
 
 routes -> controller: get_filters(request, response, next)
@@ -39,16 +42,18 @@ model_user -->> controller: drivers
 deactivate model_user
 
 == Frontend ==
-controller -> routes: response.render('consult_report', {units: units, drivers: drivers});
+controller -> routes: response.render('report', {units: units, drivers: drivers});
 deactivate controller
 
 activate routes
 routes -> Administrador: HTML
 deactivate routes
 
-Administrador  -> Administrador: onselect(generate)
+Administrador  -> view: Seleccionar 'Generar'
+activate view
 
-Administrador -> routes: fetch('report/generate_report', method: {POST})
+view -> routes: POST /reports/generate
+deactivate view
 activate routes
 
 routes -> controller: post_report(request, response, next)
@@ -66,7 +71,7 @@ model_report -->> controller: reportData
 deactivate model_report
 
 == Frontend ==
-controller -> routes: response.render('generate_report', {reportData: reportData});
+controller -> routes: response.render('report', {reportData: reportData});
 deactivate controller
 activate routes
 routes -> Administrador: HTML
