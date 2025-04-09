@@ -3,8 +3,9 @@ title US-01-Consultar dashboard principal
 
 actor Administrador
 
-boundary "dashboardRoutes.js" as R
 boundary "dashboard.ejs" as View
+control "dashboard.js" as JS
+boundary "dashboardRoutes.js" as R
 control "dashboardController.js" as C
 entity "reporteModel.js" as M_Reporte
 entity "userModel.js" as M_User
@@ -12,18 +13,67 @@ entity "unitModel.js" as M_Unit
 database "MongoDB" as DB
 
 == Frontend ==
-Administrador -> R: GET /dashboard
+alt Filtro por día
+    Administrador -> View: Interacción con el filtro
 
-activate R
-R -> C: getConsultDashboard(req, res)
-deactivate R
+    activate View
+    View -> JS: onFilterChange("day")
+    deactivate View
+
+    activate JS
+    JS -> R: GET /dashboard?filter=day
+    deactivate JS
+
+    activate R
+    R -> C: getConsultDashboard(req, res)
+    deactivate R
+
+    activate C
+
+else Filtro por semana
+    Administrador -> View: Interacción con el filtro
+
+    activate View
+    View -> JS: onFilterChange("week")
+    deactivate View
+
+    activate JS
+    JS -> R: GET /dashboard?filter=week
+    deactivate JS
+
+    activate R
+    R -> C: getConsultDashboard(req, res)
+    deactivate R
+
+else Filtro por mes
+    Administrador -> View: Interacción con el filtro
+
+    activate View
+    View -> JS: onFilterChange("month")
+    deactivate View
+
+    activate JS
+    JS -> R: GET /dashboard?filter=month
+    deactivate JS
+
+    activate R
+    R -> C: getConsultDashboard(req, res)
+    deactivate R
+
+else sin interacción con el filtro
+    Administrador -> R: GET /dashboard?filter=week
+
+    activate R
+    R -> C: getConsultDashboard(req, res)
+    deactivate R
+end
+
 
 == Backend ==
-activate C
-C ->> M_Reporte: fetchAll()
+C ->> M_Reporte: fetchAll(filterByDate)
 
 activate M_Reporte
-M_Reporte ->> DB: db.execute(query)
+M_Reporte ->> DB: db.execute(query with filter)
 
 activate DB
 DB -->> M_Reporte: Datos de reportes
@@ -58,11 +108,28 @@ activate M_User
 end
 
 == Frontend ==
-C -> View: response.render(unitname, username, mileage, efficiency, photoLiters, loadDate)
-deactivate C
+alt Promesa exitosa (status 200)
+    C -> JS: JSON
+    
+    activate JS
+    JS -> View: Actualizar datos
+    deactivate JS
+    
+    activate View
+    View -> Administrador: Vista actualizada
+    deactivate View
+else Promesa no exitosa (status 500)
+    C -> JS: JSON
+    deactivate C
 
-activate View
-View -> Administrador: HTML
-deactivate View
+    activate JS
+    JS -> View: Mostrar mensaje de error
+    deactivate JS
+
+    activate View
+    View -> Administrador: Error al cargar datos
+    deactivate View
+end
+
 
 @enduml
