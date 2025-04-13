@@ -5,40 +5,108 @@ actor Administrador
 
 boundary "users.ejs" as VistaUsuarios
 boundary "registerUser.ejs" as VistaRegistro
-boundary "usersRoutes" as Router
-control "registerUserController" as Controller
-entity "userModel" as Modelo
+boundary "users.js" as Router
+control "registerUserController.js" as Controller
+entity "User.js" as UserModel
+entity "Role.js" as RoleModel
 database "MongoDB" as DB
 
 == Frontend ==
 Administrador -> VistaUsuarios : Clic en "Agregar Usuario"
+activate VistaUsuarios
 VistaUsuarios -> Router : redirect('/usuarios/registrar')
+deactivate VistaUsuarios
+
+activate Router
 Router -> VistaRegistro : render('registroUsuario.ejs')
+deactivate Router
+
+activate VistaRegistro
 alt Datos válidos
   VistaRegistro -> VistaRegistro : Habilita botón
 else Datos inválidos
   VistaRegistro -> VistaRegistro : Deshabilita botón
 end
+deactivate VistaRegistro
 
-Administrador -> VistaRegistro : Clic en "Registra Usuario"
-VistaRegistro -> Router : POST /usersRegistrar
+Administrador -> VistaRegistro : Clic en "Registrar Usuario"
+activate VistaRegistro
+VistaRegistro -> Router : POST /users/register
+deactivate VistaRegistro
 
 == Backend ==
+activate Router
 Router ->> Controller : registerUser(req, res)
-Controller ->> Controller : Hashear contraseña
-Controller ->> Modelo : new User({...})
+deactivate Router
 
-Modelo ->> DB : db.user.insertOne
-DB -->> Modelo : Confirmación de inserción
-Modelo -->> Controller : Usuario creado
+activate Controller
+Controller ->> Controller : Validar campos
 
-Controller -->> Router : res.status(200).json(...)
+alt Contraseñas no coinciden
+  Controller -->> Router : res.status(400).json({ message: "Las contraseñas no coinciden" })
+  activate Router
+else Campos obligatorios faltantes
+  Controller -->> Router : res.status(400).json({ message: "Todos los campos son obligatorios" })
+else Validación correcta
+  Controller ->> Controller : Comparar contraseñas
+
+  Controller ->> RoleModel : Role.findOne({ roleName })
+  activate RoleModel
+  RoleModel ->> DB : Buscar rol por nombre
+  activate DB
+  DB -->> RoleModel : Rol encontrado (_id)
+  deactivate DB
+  RoleModel -->> Controller : Retornar rol
+  deactivate RoleModel
+
+  alt Rol no válido
+    Controller -->> Router : res.status(400).json({ message: "Rol no válido" })
+  else Rol encontrado
+    Controller ->> UserModel : User.findOne({ email })
+    activate UserModel
+    UserModel ->> DB : Buscar usuario por email
+    activate DB
+    DB -->> UserModel : Resultado (null o usuario)
+    deactivate DB
+    UserModel -->> Controller : Retornar resultado
+    deactivate UserModel
+
+    alt Correo ya registrado
+      Controller -->> Router : res.status(409).json({ message: "El correo ya está registrado" })
+    else Email disponible
+      Controller ->> Controller : Hashear contraseña
+
+      Controller ->> UserModel : new User({...})
+      activate UserModel
+      UserModel ->> DB : Insertar nuevo usuario
+      activate DB
+      DB -->> UserModel : Confirmación de inserción
+      deactivate DB
+      UserModel -->> Controller : Usuario creado
+      deactivate UserModel
+
+      Controller -->> Router : res.status(200).json({ message: "Usuario creado correctamente" })
+      deactivate Controller
+    end
+  end
+end
+
+
 
 == Frontend ==
 Router --> VistaRegistro : Mostrar modal de éxito
+deactivate Router
 
+activate VistaRegistro
 VistaRegistro -> Router : redirect('/usuarios')
+deactivate VistaRegistro
+
+activate Router
 Router -> VistaUsuarios : render('usuarios.ejs', { usuarios })
+deactivate Router
+
+activate VistaUsuarios
 VistaUsuarios --> Administrador : Mostrar usuarios en vista
+deactivate VistaUsuarios
 
 @enduml
