@@ -17,18 +17,17 @@ U -> Activity : Ingresa contraseña
 U -> Activity : Clic en "Iniciar Sesión"
 Activity -> ViewModel : iniciarSesion(usuario, contraseña)
 
-
 == Backend ==
 ViewModel -> Repository : iniciarSesion(usuario, contraseña)
-Repository -> API : login(usuario, contraseña)
-API -> DB : Buscar usuario por nombre
+Repository --> API : login(usuario, contraseña) <<async>>
+API --> DB : Buscar usuario por nombre <<async>>
 DB --> API : Usuario encontrado / no encontrado
 
 alt Usuario encontrado
     API -> API : Verificar contraseña
     alt Contraseña válida
         API -> API : Generar JWT Token
-        API --> Repository : JWT Token
+        API --> Repository : JWT Token <<async>>
         Repository --> ViewModel : Resultado OK
         == Frontend ==
         ViewModel --> Activity : Navegar a Formulario
@@ -44,6 +43,5 @@ else Usuario no encontrado
     == Frontend ==
     ViewModel --> Activity : Mostrar error en pantalla
 end
-
 
 @enduml

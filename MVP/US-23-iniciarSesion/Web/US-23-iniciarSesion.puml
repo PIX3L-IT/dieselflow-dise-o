@@ -1,5 +1,5 @@
 @startuml 
-title US-23: Iniciar Sesion Web
+title US-23: Iniciar Sesión Web
 
 actor Usuario as U
 
@@ -20,8 +20,8 @@ VistaLogin -> Router : POST /iniciarSesion
 
 == Backend ==
 Router -> Controller : iniciarSesion(req, res)
-Controller -> Modelo : Buscar usuario por nombre
-Modelo -> DB : Consulta usuario
+Controller --> Modelo : Buscar usuario por nombre <<async>>
+Modelo --> DB : Consulta usuario <<async>>
 DB --> Modelo : Retorna usuario o null
 Modelo --> Controller : Devuelve usuario
 Controller -->> Router : res.status(200).json(...)
@@ -30,10 +30,10 @@ alt Usuario encontrado
     Controller -> Controller : Verificar contraseña
     alt Contraseña válida
         Controller -> Controller : Generar JWT Token
-        Controller --> Router : Responder con Token JWT
-        Router --> SController : PasarToken
+        Controller --> Router : Responder con Token JWT <<async>>
+        Router --> SController : PasarToken <<async>>
         == Frontend ==
-        SController --> SRouter : Renderizar Dashboard Principal
+        SController --> SRouter : Renderizar Dashboard Principal <<async>>
 
     else Contraseña incorrecta
         Controller --> Router : Responder con error "Credenciales incorrectas"
@@ -43,6 +43,5 @@ else Usuario no encontrado
     Controller --> Router : Responder con error "Usuario no existe"
     Router --> VistaLogin : Mostrar error en vista Login
 end
-
 
 @enduml
