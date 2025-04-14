@@ -65,14 +65,14 @@ note right of conductorController
 Map dieselByDay into dieselData for D3.js
 end note
 
-conductorController ->> conductorModel : getPaginatedReports(userId, page)
+conductorController ->> reportModel : getPaginatedReports(userId, page)
 activate reportModel
 reportModel ->> DB : Report.find({ idUser })\n.sort({ loadDate: -1 })\n.skip(page * 5)\n.limit(5)\n.populate("idUnit")
 activate DB
 DB -->> reportModel : 5 reports from requested page
 deactivate DB
 reportModel -->> conductorController : lastReports
-deactivate conductorModel
+deactivate reportModel
 
 conductorController -> conductorController : const data = {\n unit: driver,\n totalTrips,\n dieselData,\n lastReports,\n page\n }
 note right of conductorController
@@ -106,7 +106,7 @@ Render image from S3 URL
 end note
 
 == AJAX Pagination ==
-Administrador -> conductorView : Click in button "Siguiente"
+Administrador -> conductorView : Click in button "arrow"
 
 
 conductorView -> conductorView : fetch(`/conductor_page/<%= unit._id %>/reports?page=n`)
@@ -129,7 +129,9 @@ DB -->> conductorModel : report, total
 deactivate DB
 conductorModel -->> conductorController : report, total
 deactivate conductorModel
-conductorController -->> conductorController: const response = {\n report, \n currentPage: \n page, \n hasNextPage: (page * limit) < total \n,hasPrevPage: page > 1};
+conductorController -->> conductorController: const conductorColumns = [{key, label}]; 
+conductorController -->> conductorController: const factory = new BaseTableFactory;
+conductorController -->> conductorController: const factory.render();
 
 
 conductorController --> conductorView : res.render('driver_statistic', response);
@@ -145,10 +147,10 @@ deactivate conductorView
 == Error Handling ==
 alt No internet connection
     
-    DB -->> conductorModel : Connection error (code: "TIMEOUT")
+    DB -->> conductorModel : Connection error (code: "504")
     deactivate DB
     activate conductorModel
-    conductorModel -->> conductorController : { code: "TIMEOUT", message: "No internet connection" }
+    conductorModel -->> conductorController : { code: "504", message: "No internet connection" }
     deactivate conductorModel
     activate conductorController
     conductorController -->> conductorRoutes : error
@@ -163,16 +165,16 @@ end
 
 alt No response for timeout
     activate DB
-    DB -->> conductorModel : Connection error (code: "TIMEOUT")
+    DB -->> conductorModel : Connection error (code: "504")
     deactivate DB
     activate conductorModel
-    conductorModel -->> conductorController : { code: "TIMEOUT", message: "No internet connection" }
+    conductorModel -->> conductorController : { code: "504", message: "504: Gateway Time Out: No se recibió la solicitud" }
     deactivate conductorModel
     activate conductorController
     conductorController -->> conductorRoutes : error
     deactivate conductorController
     activate conductorRoutes
-    conductorRoutes --> conductorView : "Error: No internet connection (code: TIMEOUT)"
+    conductorRoutes --> conductorView : "Error: No response (code: TIMEOUT)"
     deactivate conductorRoutes
     activate conductorView
     conductorView --> Administrador : "Error page"
