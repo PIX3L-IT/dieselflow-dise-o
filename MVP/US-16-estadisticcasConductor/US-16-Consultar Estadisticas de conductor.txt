@@ -3,17 +3,18 @@ title US-16 - Estadisticas de conductor
 
 actor Admin as Administrador
 
-participant "statisticsConductorView.ejs" as conductorView
-participant "statisticsConductorRoutes.js" as conductorRoutes
-participant "statisticsConductorController.js" as conductorController
+participant "user.ejs" as usersView
+participant "statisticsDriverView.ejs" as conductorView
+participant "statisticsDriverRoutes.js" as conductorRoutes
+participant "statisticsDriverController.js" as conductorController
 participant "userModel.js" as conductorModel
 participant "reportModel.js" as reportModel
 database "MongoDB" as DB
 
 == Frontend ==
-Administrador -> conductorView : Click on a unit
-activate conductorView
-conductorView -> conductorRoutes : GET /conductor/{id}?page=0
+Administrador -> usersView: Click on a driver
+activate usersView
+usersView -> conductorRoutes : GET /conductor/{id}?page=0
 deactivate conductorView
 
 == Routes ==
