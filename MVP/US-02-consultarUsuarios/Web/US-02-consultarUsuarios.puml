@@ -4,46 +4,31 @@ title US-02-Consultar Usuarios
 actor Administrador
 
 boundary  "users.ejs" as M4
-boundary  "usersRoutes.js" as M1
+boundary  "userRoutes.js" as M1
 control  "getUsersController.js" as M2
-entity  "usersModel.js" as M3
+entity  "User.js" as M3
 database "MongoDB" as DB
 
 == Frontend ==
-alt filtro de usuarios
-    Administrador -> M4 : Sin clic en filtro. tipo = null
-else
-    Administrador -> M4 : Clic en filtro. tipo =  "Conductores" | "Administradores"
-end
+Administrador -> M4 : Clic en boton 'Usuarios' 
 
 
-M4 -> M1 : GET /usuarios?tipo={tipo}
+M4 -> M1 : GET /usuarios
 
 == Backend ==
 M1 ->> M2 : controller.getUsers(req,res)
-M2 ->> M3 : model.fetchAll(typeUser)
+M2 ->> M3 : User.getAllUsers()
+M3 ->> DB : User.find()
 
-alt typeUser == null (Consulta todos los usuarios)
-    M3 ->> DB : User.find({})
-else typeUser == "Conductor" OR typeUser == "Administrador"
-    M3 ->> DB : User.find({ rol: typeUser })
-end
 
 DB -->> M3 : Array BSON de usuarios
 M3 -->> M2 : Array de usuarios
-M2 --> M4 : res.render('/usuarios', { usuarios: usuarios })
-
-
-alt No hay conexión a internet
-    DB -->> M3 : Error de conexión (code: "TIMEOUT")
-    M3 -->> M2 : Retorna error {code, message}
-    M2 --> M4 : res.render('/usuarios', { usuarios: usuarios, error: "Error: No hay conexión a internet. (code: timeout)" })
-end
+M2 --> M4 : res.render('/usuarios', { users: users })
 
 alt Error BD
-    DB -->> M3 : Error de conexión (code: "ECONNREFUSED")
+    DB -->> M3 : Error de conexión (code)
     M3 -->> M2 : Retorna error { code, message}
-    M2 --> M4 : res.render('/usuarios', { usuarios: usuarios, error: "Error en la base de datos. (code: ECONNREFUSED)" }) 
+    M2 --> M4 : res.render('includes/500') 
 end
 
 
