@@ -3,27 +3,28 @@ title US-14-Consultar Reporte
 
 actor Administrador
 
-boundary "report.ejs" as view
+boundary "report.ejs" as parent_view
+boundary "partialReport.ejs" as partial_view
 boundary "reportRoutes" as routes
-control "generateReportController.js" as controller
-entity "userModel" as model_user
-entity "unitModel" as model_unit
-entity "reportModel" as model_report
+control "reportController.js" as controller
+entity "User" as model_user
+entity "Unit" as model_unit
+entity "Report" as model_report
 database "MongoDB" as db
 
 == Frontend ==
-Administrador -> view: Seleccionar 'Reportes'
-activate view
-view -> routes: GET /reports
-deactivate view
+Administrador -> parent_view: Seleccionar 'Reportes'
+activate parent_view
+parent_view -> routes: GET /reportes
+deactivate parent_view
 activate routes
 
-routes -> controller: get_filters(request, response, next)
+routes -> controller: getFilters(request, response)
 deactivate routes
 
 == Backend ==
 activate controller
-controller ->> model_unit: fetchAll()
+controller ->> model_unit: findAll()
 activate model_unit
 model_unit ->> db: db.Unit.find({});
 activate db
@@ -49,19 +50,19 @@ activate routes
 routes -> Administrador: HTML
 deactivate routes
 
-Administrador  -> view: Seleccionar 'Generar'
-activate view
+Administrador  -> parent_view: Seleccionar 'Generar'
+activate parent_view
 
-view -> routes: POST /reports/generate
-deactivate view
+parent_view -> routes: POST /reportes/generar
+deactivate parent_view
 activate routes
 
-routes -> controller: post_report(request, response, next)
+routes -> controller: postReport(request, response)
 deactivate routes
 
 == Backend ==
 activate controller
-controller ->> model_report: fetchReport(startDate, endDate, idUnit, idUser)
+controller ->> model_report: fetchReport(startDate, endDate, selectedUnit, selectedDriver)
 activate model_report
 model_report ->> db: db.Report.find({loadDate: {$gt: startDate, $lt: endDate}});
 activate db
@@ -71,7 +72,7 @@ model_report -->> controller: reportData
 deactivate model_report
 
 == Frontend ==
-controller -> routes: response.render('report', {reportData: reportData});
+controller -> routes: response.render('partialReport', {reportData: reportData});
 deactivate controller
 activate routes
 routes -> Administrador: HTML
