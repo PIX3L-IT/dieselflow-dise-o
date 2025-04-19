@@ -1,0 +1,125 @@
+title US-10: Registar Unidad
+
+actor Administrator
+
+boundary "units.ejs" as UnitView
+boundary "registerUnit.ejs" as RegisterView
+control "registerUnit.js" as JS
+boundary "unitsRoutes.js" as Router
+control "registerUnitController.js" as Controller
+entity "Unit.js" as Model
+database "MongoDB" as DB
+
+== Frontend ==
+
+Administrator -> UnitView: Click "Registrar unidad"
+UnitView -> Router: redirect('/unidad/registrar')
+Router -> RegisterView: render('registerUnit.ejs')
+RegisterView -> JS: Load registerUnit.js
+
+alt User types in input
+  activate JS
+  JS -> JS: validateInput()
+  alt Valid input
+    JS -> RegisterView: Enable submit button
+  else Invalid input
+    JS -> RegisterView: Disable submit button
+  end
+end
+deactivate JS
+
+Administrator -> JS: Click "Registrar unidad"
+activate JS
+JS ->> Router: fetch('/unitsRegister', { method: 'POST', body: {...} })
+
+
+== Backend ==
+
+Router ->> Controller: registerUnit(req, res)
+note right of Controller: data = req.body
+activate Controller
+Controller ->> Controller: validateInput(data)
+
+alt Valid input
+
+  Controller ->> Model: try await Unit.compareUnitsName(data.unitName)
+  activate Model
+
+  note right of Model
+    unitSchema.static.compareUnitsName(data.unitName) = async function (unitName) {
+        return await this.findOne({ unitName })
+    }
+  end note
+
+  Model ->> DB: unitSchema.static.compareUnitsName(data.unitName)
+  activate DB
+
+
+  DB -->> Model: Confirmation
+  deactivate DB
+
+  Model -->> Controller: return await this.findOne({ unitName })
+  deactivate Model
+
+  alt Unit already exists
+    Controller -->> JS: res.status(400).json({ success: false, message: "Nombre de unidad ya registrada" })
+
+  else Unit does not exist
+    Controller ->> Model: try await Unit.createUnit(data)
+    activate Model
+
+    note right of Model
+    unitSchema.static.createUnit(data) = async function (data) {
+      const unit = new this(data)
+      return await unit.save()
+    }
+    end note
+    Model ->> DB: unitSchema.static.createUnit(...){...}
+    activate DB
+    
+    DB -->> Model: Confirmation
+    deactivate DB
+
+    alt Success
+      Model -->> Controller: return await Unit.createUnit(data)
+      deactivate Model
+      Controller -->> JS: res.status(201).json({ success: true, message: "Unidad registrada correctamente" })
+    else Error
+      Controller -->> JS: res.status(500).json({ success: false, message: "Error al guardar en la base de datos" })
+    end
+   end
+
+  
+
+else Invalid input
+  note right of Controller
+    // Campo vacío
+    res.status(400).json({
+        success: false,
+        message: "Todos los campos son obligatorios"
+    });
+    
+    // Tipo de dato inválido
+    res.status(400).json({
+        success: false,
+        message: "Datos inválidos: verifica el tipo de datos"
+    });
+
+  end note
+  Controller -->> JS: res.status(...).json({ success: false, message: "..." })
+  deactivate Controller
+end
+
+==Frontend==
+
+alt success = true
+  JS -> RegisterView: Show success modal
+  JS -> JS: btnCerrar.onclick () => window.location.href = "/units"
+else success = false
+  JS -> RegisterView: Show error modal
+  JS -> JS: btnErrorCerrar.onclick = close modal
+  
+end
+deactivate JS
+RegisterView -> Administrator: Show view
+@enduml
